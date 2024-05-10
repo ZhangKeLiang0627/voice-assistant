@@ -7,17 +7,18 @@ import subprocess
 
 import pyaudio
 import whisper
+import pyttsx3
 
 from langchain.prompts import PromptTemplate
 from langchain_community.llms import LlamaCpp
 from langchain.callbacks.base import BaseCallbackHandler, BaseCallbackManager
 
-LANG = "EN" # CN for Chinese, EN for English
+LANG = "CN"  # CN for Chinese, EN for English
 DEBUG = True
 
 # Model Configuration
 WHISP_PATH = "models/whisper-large-v3"
-MODEL_PATH = "models/yi-34b-chat.Q8_0.gguf" # Or models/yi-chat-6b.Q8_0.gguf
+MODEL_PATH = "models/yi-chat-6b.Q8_0.gguf"  # Or models/yi-34b-chat.Q8_0.gguf
 
 # Recording Configuration
 CHUNK = 1024
@@ -25,8 +26,11 @@ FORMAT = pyaudio.paInt16
 CHANNELS = 1
 RATE = 44100
 SILENCE_THRESHOLD = 500
-SILENT_CHUNKS = 2 * RATE / CHUNK  # two seconds of silence marks the end of user voice input
-MIC_IDX = 0 # Set microphone id. Use tools/list_microphones.py to see a device list.
+SILENT_CHUNKS = (
+    2 * RATE / CHUNK
+)  # two seconds of silence marks the end of user voice input
+MIC_IDX = 0  # Set microphone id. Use tools/list_microphones.py to see a device list.
+
 
 def compute_rms(data):
     # Assuming data is in 16-bit samples
@@ -34,13 +38,21 @@ def compute_rms(data):
     ints = struct.unpack(format, data)
 
     # Calculate RMS
-    sum_squares = sum(i ** 2 for i in ints)
+    sum_squares = sum(i**2 for i in ints)
     rms = (sum_squares / len(ints)) ** 0.5
     return rms
 
+
 def record_audio():
     audio = pyaudio.PyAudio()
-    stream = audio.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, input_device_index=MIC_IDX, frames_per_buffer=CHUNK)
+    stream = audio.open(
+        format=FORMAT,
+        channels=CHANNELS,
+        rate=RATE,
+        input=True,
+        input_device_index=MIC_IDX,
+        frames_per_buffer=CHUNK,
+    )
 
     silent_chunks = 0
     audio_started = False
@@ -65,11 +77,12 @@ def record_audio():
     audio.terminate()
 
     # save audio to a WAV file
-    with wave.open('recordings/output.wav', 'wb') as wf:
+    with wave.open("recordings/output.wav", "wb") as wf:
         wf.setnchannels(CHANNELS)
         wf.setsampwidth(audio.get_sample_size(FORMAT))
         wf.setframerate(RATE)
-        wf.writeframes(b''.join(frames))
+        wf.writeframes(b"".join(frames))
+
 
 class VoiceOutputCallbackHandler(BaseCallbackHandler):
     def __init__(self):
@@ -87,7 +100,7 @@ class VoiceOutputCallbackHandler(BaseCallbackHandler):
             self.generated_text += token
 
         # Check if the token is the end of a sentence
-        if token in ['.', '。', '!', '！', '?', '？']:
+        if token in [".", "。", "!", "！", "?", "？"]:
             with self.lock:
                 # Put the complete sentence in the queue
                 self.speech_queue.put(self.generated_text)
@@ -107,22 +120,43 @@ class VoiceOutputCallbackHandler(BaseCallbackHandler):
                 self.tts_busy = False
 
     def text_to_speech(self, text):
+
+        # 创建一个文本到语音转换器
+        engine = pyttsx3.init()
+
+        # 设置语速为200
+        engine.setProperty("rate", 200)
+        # 设置音量
+        engine.setProperty("volume", 1.0)
+
+        # engine.setProperty("voices", voices[0].id)
         try:
             if LANG == "CN":
-                subprocess.call(["say", "-r", "200", "-v", "TingTing", text])
+                # subprocess.call(["say", "-r", "200", "-v", "TingTing", text])
+                engine.say(text)
+                # 等待语音输出结束
+                engine.runAndWait()
             else:
-                subprocess.call(["say", "-r", "180", "-v", "Karen", text])
+                # subprocess.call(["say", "-r", "180", "-v", "Karen", text])
+                engine.say(text)
+                # 等待语音输出结束
+                engine.runAndWait()
         except Exception as e:
             print(f"Error in text-to-speech: {e}")
 
+        engine.stop()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     if LANG == "CN":
         prompt_path = "prompts/example-cn.txt"
     else:
         prompt_path = "prompts/example-en.txt"
-    with open(prompt_path, 'r', encoding='utf-8') as file:
-        template = file.read().strip() # {dialogue}
+
+    whisper_model = whisper.load_model("base", device="cuda")  # 加载Whisper模型
+
+    with open(prompt_path, "r", encoding="utf-8") as file:
+        template = file.read().strip()  # {dialogue}
     prompt_template = PromptTemplate(template=template, input_variables=["dialogue"])
 
     # Create an instance of the VoiceOutputCallbackHandler
@@ -133,10 +167,10 @@ if __name__ == '__main__':
 
     llm = LlamaCpp(
         model_path=MODEL_PATH,
-        n_gpu_layers=1, # Metal set to 1 is enough.
-        n_batch=512,    # Should be between 1 and n_ctx, consider the amount of RAM of your Apple Silicon Chip.
-        n_ctx=4096,     # Update the context window size to 4096
-        f16_kv=True,    # MUST set to True, otherwise you will run into problem after a couple of calls
+        n_gpu_layers=1,  # Metal set to 1 is enough.
+        n_batch=512,  # Should be between 1 and n_ctx, consider the amount of RAM of your Apple Silicon Chip.
+        n_ctx=4096,  # Update the context window size to 4096
+        f16_kv=True,  # MUST set to True, otherwise you will run into problem after a couple of calls
         callback_manager=callback_manager,
         stop=["<|im_end|>"],
         verbose=False,
@@ -145,15 +179,24 @@ if __name__ == '__main__':
     try:
         while True:
             if voice_output_handler.tts_busy:  # Check if TTS is busy
-                continue  # Skip to the next iteration if TTS is busy 
+                continue  # Skip to the next iteration if TTS is busy
             try:
                 print("Listening...")
                 record_audio()
                 print("Transcribing...")
                 time_ckpt = time.time()
-                user_input = whisper.transcribe("recordings/output.wav", path_or_hf_repo=WHISP_PATH)["text"]
-                print("%s: %s (Time %d ms)" % ("Guest", user_input, (time.time() - time_ckpt) * 1000))
-            
+                # user_input = whisper.transcribe("recordings/output.wav", path_or_hf_repo=WHISP_PATH)["text"]
+                user_input = whisper_model.transcribe(
+                    "recordings/output.wav", language="Chinese"
+                )["text"] # 对录音做语音识别
+                # user_input = whisper_model.transcribe(
+                #     "recordings/output.wav", language="English"
+                # )["text"]
+                print(
+                    "%s: %s (Time %d ms)"
+                    % ("Guest", user_input, (time.time() - time_ckpt) * 1000)
+                )
+
             except subprocess.CalledProcessError:
                 print("voice recognition failed, please try again")
                 continue
@@ -165,6 +208,9 @@ if __name__ == '__main__':
             if reply is not None:
                 voice_output_handler.speech_queue.put(None)
                 dialogue += "*A* {}\n".format(reply)
-                print("%s: %s (Time %d ms)" % ("Server", reply.strip(), (time.time() - time_ckpt) * 1000))
+                print(
+                    "%s: %s (Time %d ms)"
+                    % ("Server", reply.strip(), (time.time() - time_ckpt) * 1000)
+                )
     except KeyboardInterrupt:
         pass

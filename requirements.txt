@@ -1,7 +1,7 @@
 torch
 torchvision
 torchaudio
-mlx
+# mlx
 langchain
 langchain-community
 numba
