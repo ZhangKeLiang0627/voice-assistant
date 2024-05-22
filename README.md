@@ -79,7 +79,7 @@ import pyttsx3
 ```python
 # 2. 修改模型路径，这里选择6B的
 # Model Configuration
-WHISP_PATH = "models/whisper-large-v3"
+# WHISP_PATH = "models/whisper-large-v3"
 MODEL_PATH = "models/yi-chat-6b.Q8_0.gguf"  # Or models/yi-34b-chat.Q8_0.gguf
 ```
 
