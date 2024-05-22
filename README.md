@@ -48,10 +48,10 @@ conda出现http429报错：CondaHTTPError: HTTP 429 TOO MANY REQUESTS for url �
 
 - **获取模型**
 
-Windows环境下，只需要获取llm的模型，模型文件存放于`models/`文件夹下，在脚本中通过变量`MODEL_PATH`指定。 推荐下载 TheBloke 与 XeIaso 的 gguf 格式模型，其中 6B 模型显存占用更小：
+1. Windows环境下，只需要获取llm的模型，模型文件存放于`models/`文件夹下，在脚本中通过变量`MODEL_PATH`指定。 推荐下载 TheBloke 与 XeIaso 的 gguf 格式模型，其中 6B 模型显存占用更小：
 [yi-chat-6b.Q8_0.gguf](https://huggingface.co/XeIaso/yi-chat-6B-GGUF/blob/main/yi-chat-6b.Q8_0.gguf) or [yi-34b-chat.Q8_0.gguf](https://huggingface.co/TheBloke/Yi-34B-Chat-GGUF/blob/main/yi-34b-chat.Q8_0.gguf)
 
-openai-whisper的模型可以根据自己的使用需求`('tiny', 'base', 'medium', 'large' ...)`来在线下载，如下
+2. openai-whisper的模型可以根据自己的使用需求`('tiny', 'base', 'medium', 'large' ...)`来在线下载，如下
 ```python
 # 修改load_model中的参数，执行程序会自动检查模型是否存在，模型不存在会自动开下载
 import whisper
@@ -68,7 +68,7 @@ if __name__ == "__main__":
 
 ## 运行
 
-Windows环境下，对`main.py`有几处改动：
+Windows环境下，对原项目的`main.py`有几处改动：
 
 ```python
 # 1. 引入
