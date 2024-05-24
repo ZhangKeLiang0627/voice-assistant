@@ -41,8 +41,9 @@ conda出现http429报错：CondaHTTPError: HTTP 429 TOO MANY REQUESTS for url �
 
 1. 安装ffmpeg依赖，教程：https://blog.csdn.net/m0_61497715/article/details/129817641
 2. 倘若发生报错：FileNotFoundError: [WinError 2] 系统找不到指定的文件。解决办法：https://blog.csdn.net/zdm_0301/article/details/133854913
-3. openai-whisper使用cuda加速，需要修改torch为gpu版本，作者使用如下命令更新torch环境`pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118`，其他torch版本可以前往[torch官网](https://pytorch.org/)获取
-4. **记得删除原项目当中的`whisper`文件夹！**
+3. 倘若发生报错：UnicodeDecodeError: 'utf-8' codec can't decode byte 0xb2 in position 9: invalid start byte，请勿使用pip的方式下载ffmpeg，同时请检查ffmpeg是否配置到系统变量PATH路径当中，此处有同样的报错案例：https://github.com/openai/whisper/discussions/302
+4. openai-whisper使用cuda加速，需要修改torch为gpu版本，作者使用如下命令更新torch环境`pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118`，其他torch版本可以前往[torch官网](https://pytorch.org/)获取
+5. **记得删除原项目当中的`whisper`文件夹！**
 
 > 提供了两个test程序，可以方便测试openai-whisper和pyttsx3
 
